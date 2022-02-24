@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -15,7 +16,27 @@ var topics = [...]string{"sensor/water"}
 
 var messagePubHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
 	fmt.Printf("Received message: %s from topic: %s.\n", msg.Payload(), msg.Topic())
-	sendSms()
+
+	type data struct {
+		time  string
+		model string
+		id    string
+		event string
+		code  string
+		mic   string
+	}
+
+	var sensorData data
+	parseMessage(msg.Payload(), sensorData)
+
+	val, err := rdb.Get(ctx, sensorData.id).Result()
+	if err == rdb.Nil {
+		// Key does not exist in cache
+		rdb.Set(ctx, sensorData.id, true, 5 * time.Minute)
+		sendSms()
+	} else if err != nil {
+		panic(err)
+	}
 }
 
 var connectHandler mqtt.OnConnectHandler = func(client mqtt.Client) {
@@ -53,19 +74,6 @@ func initMqtt() {
 	}
 
 	sub(client)
-	publish(client)
-
-	// client.Disconnect(1000 * 1000 * 1000)
-}
-
-func publish(client mqtt.Client) {
-	num := 1
-	for i := 0; i < num; i++ {
-		text := fmt.Sprintf("Message %d.", i)
-		token := client.Publish("topic/fillmypihole", 0, false, text)
-		token.Wait()
-		// time.Sleep(time.Second)
-	}
 }
 
 func sub(client mqtt.Client) {
@@ -85,4 +93,10 @@ func newTlsConfig() *tls.Config {
 
 	certpool.AppendCertsFromPEM(ca)
 	return &tls.Config{RootCAs: certpool}
+}
+
+func parseMessage(bytes []byte, addr interface{}) {
+	if err := json.Unmarshal(bytes, &addr); err != nil {
+		fmt.Println(err)
+	}
 }

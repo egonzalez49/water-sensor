@@ -14,6 +14,8 @@ func main() {
 
 	loadEnvVars()
 
+	initRedis()
+
 	initMqtt()
 
 	<-keepAlive
