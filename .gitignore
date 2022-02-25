@@ -1,2 +1,3 @@
 .env
-ca.crt
+*.crt
+*.key
