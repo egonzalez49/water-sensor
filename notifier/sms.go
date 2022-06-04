@@ -1,4 +1,4 @@
-package main
+package notifier
 
 import (
 	"fmt"
@@ -13,7 +13,7 @@ func sendSms() {
 	apiKey := os.Getenv("TWILIO_API_KEY")
 	apiSecret := os.Getenv("TWILIO_API_SECRET")
 
-	client := twilio.NewRestClientWithParams(twilio.RestClientParams{
+	client := twilio.NewRestClientWithParams(twilio.ClientParams{
 		Username:   apiKey,
 		Password:   apiSecret,
 		AccountSid: accountSid,
@@ -27,7 +27,7 @@ func sendSms() {
 	params.SetFrom(fromPhoneNum)
 	params.SetBody("Water leak detected.")
 
-	resp, err := client.ApiV2010.CreateMessage(params)
+	resp, err := client.Api.CreateMessage(params)
 	if err != nil {
 		fmt.Println(err.Error())
 		err = nil

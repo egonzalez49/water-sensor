@@ -5,6 +5,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/egonzalez49/water-sensor/subscriber"
 	"github.com/joho/godotenv"
 )
 
@@ -14,9 +15,7 @@ func main() {
 
 	loadEnvVars()
 
-	initRedis()
-
-	initMqtt()
+	subscriber.Subscribe()
 
 	<-keepAlive
 }

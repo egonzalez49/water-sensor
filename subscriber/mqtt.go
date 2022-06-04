@@ -1,4 +1,4 @@
-package main
+package subscriber
 
 import (
 	"crypto/tls"
@@ -8,8 +8,11 @@ import (
 	"io/ioutil"
 	"os"
 	"strconv"
+	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/egonzalez49/water-sensor/notifier"
+	"github.com/go-redis/redis/v8"
 )
 
 var topics = [...]string{"sensor/water"}
@@ -29,11 +32,11 @@ var messagePubHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Me
 	var sensorData data
 	parseMessage(msg.Payload(), sensorData)
 
-	val, err := rdb.Get(ctx, sensorData.id).Result()
-	if err == rdb.Nil {
+	_, err := rdb.Get(ctx, sensorData.id).Result()
+	if err == redis.Nil {
 		// Key does not exist in cache
-		rdb.Set(ctx, sensorData.id, true, 5 * time.Minute)
-		sendSms()
+		rdb.Set(ctx, sensorData.id, true, 5*time.Minute)
+		notifier.Notify()
 	} else if err != nil {
 		panic(err)
 	}
@@ -47,7 +50,9 @@ var connectLostHandler mqtt.ConnectionLostHandler = func(client mqtt.Client, err
 	fmt.Printf("Connection lost: %v.\n", err)
 }
 
-func initMqtt() {
+func Subscribe() {
+	initRedis()
+
 	var broker = os.Getenv("MOSQUITTO_BROKER")
 	var clientId = os.Getenv("MOSQUITTO_CLIENT_ID")
 	var username = os.Getenv("MOSQUITTO_USERNAME")
@@ -59,12 +64,14 @@ func initMqtt() {
 
 	opts := mqtt.NewClientOptions()
 	opts.AddBroker(fmt.Sprintf("ssl://%s:%d", broker, port))
+
 	tlsConfig := newTlsConfig()
 	opts.SetTLSConfig(tlsConfig)
 	opts.SetClientID(clientId)
 	opts.SetUsername(username)
 	opts.SetPassword(password)
 	opts.SetDefaultPublishHandler(messagePubHandler)
+
 	opts.OnConnect = connectHandler
 	opts.OnConnectionLost = connectLostHandler
 
