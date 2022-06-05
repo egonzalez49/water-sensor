@@ -1,14 +1,16 @@
 package notifier
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/twilio/twilio-go"
 	openapi "github.com/twilio/twilio-go/rest/api/v2010"
 )
 
-func sendSms() {
+func executeSms() {
 	accountSid := os.Getenv("TWILIO_ACCOUNT_SID")
 	apiKey := os.Getenv("TWILIO_API_KEY")
 	apiSecret := os.Getenv("TWILIO_API_SECRET")
@@ -19,19 +21,32 @@ func sendSms() {
 		AccountSid: accountSid,
 	})
 
+	senderNumber := os.Getenv("SENDER_NUMBER")
+	recipientNumbers := parseRecipientNumbers()
+
+	for i := range recipientNumbers {
+		sendSms(client, senderNumber, recipientNumbers[i])
+	}
+}
+
+func sendSms(client *twilio.RestClient, senderNumber string, recipientNumber string) {
 	params := &openapi.CreateMessageParams{}
 
-	toPhoneNum := os.Getenv("TO_PHONE_NUM")
-	fromPhoneNum := os.Getenv("FROM_PHONE_NUM")
-	params.SetTo(toPhoneNum)
-	params.SetFrom(fromPhoneNum)
+	params.SetTo(senderNumber)
+	params.SetFrom(recipientNumber)
 	params.SetBody("Water leak detected.")
 
 	resp, err := client.Api.CreateMessage(params)
 	if err != nil {
-		fmt.Println(err.Error())
-		err = nil
+		message := fmt.Sprintf("Failed to send SMS to %s.", recipientNumber)
+		fmt.Println(message + " Error: " + err.Error())
 	} else {
-		fmt.Println("Message Sid: " + *resp.Sid)
+		message := fmt.Sprintf("Successfully sent SMS to %s.", recipientNumber)
+		response, _ := json.Marshal(*resp)
+		fmt.Println(message + " Response: " + string(response))
 	}
+}
+
+func parseRecipientNumbers() []string {
+	return strings.Split(strings.ReplaceAll(os.Getenv("RECIPIENT_NUMBERS"), " ", ""), ",")
 }

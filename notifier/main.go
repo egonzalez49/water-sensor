@@ -1,5 +1,5 @@
 package notifier
 
 func Notify() {
-	sendSms()
+	executeSms()
 }
