@@ -38,7 +38,7 @@ var messagePubHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Me
 		rdb.Set(ctx, sensorData.id, true, 5*time.Minute)
 		notifier.Notify()
 	} else if err != nil {
-		panic(err)
+		panic("Something unexpected occurred attempting to get Redis cache. Error: " + err.Error())
 	}
 }
 
@@ -77,13 +77,14 @@ func Subscribe() {
 
 	client := mqtt.NewClient(opts)
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
+		fmt.Println("An error occurred connecting to the MQTT broker.")
 		panic(token.Error())
 	}
 
-	sub(client)
+	subToTopics(client)
 }
 
-func sub(client mqtt.Client) {
+func subToTopics(client mqtt.Client) {
 	for _, topic := range topics {
 		token := client.Subscribe(topic, 1, nil)
 		token.Wait()
@@ -95,7 +96,7 @@ func newTlsConfig() *tls.Config {
 	certpool := x509.NewCertPool()
 	ca, err := ioutil.ReadFile("ca.crt")
 	if err != nil {
-		panic(err.Error())
+		panic("Unable to read the certificate authority cert. Error: " + err.Error())
 	}
 
 	certpool.AppendCertsFromPEM(ca)
@@ -104,6 +105,6 @@ func newTlsConfig() *tls.Config {
 
 func parseMessage(bytes []byte, addr interface{}) {
 	if err := json.Unmarshal(bytes, &addr); err != nil {
-		fmt.Println(err)
+		panic("Unable to parse message. Error: " + err.Error())
 	}
 }

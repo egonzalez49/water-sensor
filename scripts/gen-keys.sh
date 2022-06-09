@@ -1,6 +1,6 @@
 #!/bin/bash
 
-IP="192.168.1.99"
+IP="localhost"
 SUBJECT_CA="/C=US/ST=Georgia/L=Atlanta/O=water_sensor/OU=CA/CN=$IP"
 SUBJECT_SERVER="/C=US/ST=Georgia/L=Atlanta/O=water_sensor/OU=Server/CN=$IP"
 SUBJECT_CLIENT="/C=US/ST=Georgia/L=Atlanta/O=water_sensor/OU=Client/CN=$IP"
@@ -16,19 +16,19 @@ function usage () {
 
 function generate_CA () {
   echo "$SUBJECT_CA"
-  openssl req -x509 -nodes -sha256 -newkey rsa:2048 -subj "$SUBJECT_CA"  -days 365 -keyout ca.key -out ca.crt
+  openssl req -x509 -nodes -sha256 -newkey rsa:2048 -subj "$SUBJECT_CA" -addext "subjectAltName = DNS:host.docker.internal" -keyout ca.key -out ca.crt -days 365
 }
 
 function generate_server () {
   echo "$SUBJECT_SERVER"
-  openssl req -nodes -sha256 -new -subj "$SUBJECT_SERVER" -keyout server.key -out server.csr
-  openssl x509 -req -sha256 -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out server.crt -days 365
+  openssl req -nodes -sha256 -new -subj "$SUBJECT_SERVER" -out server.csr -keyout server.key
+  openssl x509 -req -sha256 -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out server.crt -days 365 -extfile <(printf "subjectAltName = DNS:host.docker.internal")
 }
 
 function generate_client () {
   echo "$SUBJECT_CLIENT"
   openssl req -new -nodes -sha256 -subj "$SUBJECT_CLIENT" -out client.csr -keyout client.key 
-  openssl x509 -req -sha256 -in client.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out client.crt -days 365
+  openssl x509 -req -sha256 -in client.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out client.crt -days 365 -extfile <(printf "subjectAltName = DNS:host.docker.internal")
 }
 
 LONG=skip_ca,skip_server,skip_client

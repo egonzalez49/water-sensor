@@ -1,8 +1,23 @@
 version: '3.8'
 
 services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: "no"
+    depends_on:
+      - cache
+      - mosquitto
+    env_file:
+      - .env
+    networks:
+      - default
   mosquitto:
-    image: eclipse-mosquitto:1.6.10
+    # image: eclipse-mosquitto:1.6.10
+    build:
+      context: ./mosquitto
+      dockerfile: Dockerfile
     user: "1000:1000"
     volumes:
       - "./mosquitto/config:/mosquitto/config"
