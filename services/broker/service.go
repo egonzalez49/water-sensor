@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
+	"log"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/egonzalez49/water-sensor/config"
@@ -82,8 +83,10 @@ func (b *Broker) Connect() error {
 
 func (b *Broker) Subscribe(topics []string) {
 	for _, topic := range topics {
-		token := b.client.Subscribe(topic, 1, nil)
-		token.Wait()
-		fmt.Printf("Subscribed to topic: %s\n", topic)
+		if token := b.client.Subscribe(topic, 1, nil); token.Wait() && token.Error() != nil {
+			log.Printf("Error when subscribing to topic: %v\n", token.Error())
+		} else {
+			log.Printf("Subscribed to topic: %s\n", topic)
+		}
 	}
 }

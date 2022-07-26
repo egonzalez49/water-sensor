@@ -7,8 +7,9 @@ import (
 )
 
 type Config struct {
-	Mqtt  MqttConfig
-	Redis RedisConfig
+	Mqtt   MqttConfig
+	Redis  RedisConfig
+	Twilio TwilioConfig
 }
 
 func NewConfig() (*Config, error) {
@@ -18,8 +19,9 @@ func NewConfig() (*Config, error) {
 	}
 
 	cfg := &Config{
-		Mqtt:  loadMqttConfig(),
-		Redis: loadRedisConfig(),
+		Mqtt:   loadMqttConfig(),
+		Redis:  loadRedisConfig(),
+		Twilio: loadTwilioConfig(),
 	}
 
 	return cfg, nil

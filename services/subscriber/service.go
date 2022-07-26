@@ -9,7 +9,7 @@ import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/egonzalez49/water-sensor/config"
 	"github.com/egonzalez49/water-sensor/services/cache"
-	"github.com/egonzalez49/water-sensor/services/notifier"
+	"github.com/egonzalez49/water-sensor/services/notify"
 	"github.com/go-redis/redis/v8"
 )
 
@@ -23,23 +23,25 @@ type SensorPayload struct {
 }
 
 type Service struct {
-	Config *config.Config
-	Cache  *cache.Cache
+	Config   *config.Config
+	Cache    *cache.Cache
+	Notifier *notify.Notifier
 }
 
-func NewSubscriber(cfg *config.Config, inmem *cache.Cache) *Service {
+func NewSubscriber(cfg *config.Config, inmem *cache.Cache, notifier *notify.Notifier) *Service {
 	return &Service{
-		Config: cfg,
-		Cache:  inmem,
+		Config:   cfg,
+		Cache:    inmem,
+		Notifier: notifier,
 	}
 }
 
 func (s *Service) OnConnect(client mqtt.Client) {
-	log.Println("Connected to broker.")
+	log.Println("Connected to broker")
 }
 
 func (s *Service) OnConnectionLost(client mqtt.Client, err error) {
-	log.Printf("Connection to broker lost: %v.\n", err)
+	log.Printf("Connection to broker lost: %v\n", err)
 }
 
 func (s *Service) OnUnknownMessage(client mqtt.Client, msg mqtt.Message) {
@@ -47,7 +49,7 @@ func (s *Service) OnUnknownMessage(client mqtt.Client, msg mqtt.Message) {
 }
 
 func (s *Service) OnWaterSensorHandler(client mqtt.Client, msg mqtt.Message) {
-	log.Printf("Message from topic %s received: %s.\n", msg.Topic(), msg.Payload())
+	log.Printf("Message from topic %s received: %s\n", msg.Topic(), msg.Payload())
 
 	var data SensorPayload
 	if err := json.Unmarshal(msg.Payload(), &data); err != nil {
@@ -59,7 +61,8 @@ func (s *Service) OnWaterSensorHandler(client mqtt.Client, msg mqtt.Message) {
 	if err == redis.Nil {
 		// Key does not exist in cache.
 		s.Cache.Set(context.Background(), data.Id, struct{}{}, 5*time.Minute)
-		notifier.Notify()
+
+		s.Notifier.Notify()
 	} else if err != nil {
 		log.Printf("Redis error: %v\n", err)
 		return

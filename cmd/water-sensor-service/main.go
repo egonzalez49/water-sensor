@@ -9,6 +9,7 @@ import (
 	"github.com/egonzalez49/water-sensor/config"
 	"github.com/egonzalez49/water-sensor/services/broker"
 	"github.com/egonzalez49/water-sensor/services/cache"
+	"github.com/egonzalez49/water-sensor/services/notify"
 	"github.com/egonzalez49/water-sensor/services/subscriber"
 )
 
@@ -24,7 +25,8 @@ func main() {
 	}
 
 	inmem := cache.NewCache(cfg)
-	sub := subscriber.NewSubscriber(cfg, inmem)
+	notifier := notify.NewNotifier(cfg)
+	sub := subscriber.NewSubscriber(cfg, inmem, notifier)
 
 	bkr, err := broker.NewBroker(cfg)
 	if err != nil {
