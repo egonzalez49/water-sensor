@@ -1,29 +1,45 @@
 package main
 
 import (
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/egonzalez49/water-sensor/subscriber"
-	"github.com/joho/godotenv"
+	"github.com/egonzalez49/water-sensor/config"
+	"github.com/egonzalez49/water-sensor/services/broker"
+	"github.com/egonzalez49/water-sensor/services/cache"
+	"github.com/egonzalez49/water-sensor/services/subscriber"
 )
 
 func main() {
+	topics := []string{"sensor/water"}
+
 	keepAlive := make(chan os.Signal, 1)
 	signal.Notify(keepAlive, os.Interrupt, syscall.SIGTERM)
 
-	loadEnvVars()
+	cfg, err := config.NewConfig()
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	subscriber.Subscribe()
+	inmem := cache.NewCache(cfg)
+	sub := subscriber.NewSubscriber(cfg, inmem)
+
+	bkr, err := broker.NewBroker(cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	bkr.SetConnectionHandlers(sub.OnConnect, sub.OnConnectionLost)
+	bkr.SetDefaultPublishHandler(sub.OnUnknownMessage)
+
+	err = bkr.Connect()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	bkr.Subscribe(topics)
 
 	<-keepAlive
-}
-
-func loadEnvVars() {
-	err := godotenv.Load(".env")
-
-	if err != nil {
-		panic("Error loading .env file.")
-	}
 }
