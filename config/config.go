@@ -7,6 +7,7 @@ import (
 )
 
 type Config struct {
+	Log    LogConfig
 	Mqtt   MqttConfig
 	Redis  RedisConfig
 	Twilio TwilioConfig
@@ -19,6 +20,7 @@ func NewConfig() (*Config, error) {
 	}
 
 	cfg := &Config{
+		Log:    loadLogConfig(),
 		Mqtt:   loadMqttConfig(),
 		Redis:  loadRedisConfig(),
 		Twilio: loadTwilioConfig(),

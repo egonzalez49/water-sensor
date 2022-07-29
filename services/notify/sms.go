@@ -2,7 +2,6 @@ package notify
 
 import (
 	"encoding/json"
-	"log"
 
 	"github.com/twilio/twilio-go"
 	openapi "github.com/twilio/twilio-go/rest/api/v2010"
@@ -22,8 +21,11 @@ func (n *Notifier) sendSms() {
 	senderNumber := n.Config.Twilio.SenderNumber
 	recipientNumbers := n.Config.Twilio.GetRecipientNumbers()
 
-	for i := range recipientNumbers {
-		n._sendSms(client, senderNumber, recipientNumbers[i])
+	// Send an sms to each recipient in concurrent-fashion.
+	for _, num := range recipientNumbers {
+		go func(num string) {
+			n._sendSms(client, senderNumber, num)
+		}(num)
 	}
 }
 
@@ -36,11 +38,11 @@ func (n *Notifier) _sendSms(client *twilio.RestClient, senderNumber string, reci
 
 	resp, err := client.Api.CreateMessage(params)
 	if err != nil {
-		log.Printf("Failed to send SMS to %s\n", recipientNumber)
-		log.Printf("Error: %v\n", err)
+		n.Logger.Errorf("Failed to send SMS to %s\n", recipientNumber)
+		n.Logger.Errorf("Error: %v\n", err)
 	} else {
-		log.Printf("Successfully sent SMS to %s\n", recipientNumber)
+		n.Logger.Infof("Successfully sent SMS to %s\n", recipientNumber)
 		response, _ := json.Marshal(*resp)
-		log.Printf("Response: %s\n", response)
+		n.Logger.Infof("Response: %s\n", response)
 	}
 }

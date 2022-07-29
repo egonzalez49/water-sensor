@@ -35,8 +35,6 @@ func (cache *Cache) Get(ctx context.Context, key string) (string, error) {
 	return cache.redis.Get(ctx, key).Result()
 }
 
-func (cache *Cache) Set(
-	ctx context.Context, key string, value interface{}, expiration time.Duration,
-) (string, error) {
+func (cache *Cache) Set(ctx context.Context, key string, value interface{}, expiration time.Duration) (string, error) {
 	return cache.redis.Set(ctx, key, value, expiration).Result()
 }

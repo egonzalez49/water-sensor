@@ -81,12 +81,10 @@ func (b *Broker) Connect() error {
 	return nil
 }
 
-func (b *Broker) Subscribe(topics []string) {
-	for _, topic := range topics {
-		if token := b.client.Subscribe(topic, 1, nil); token.Wait() && token.Error() != nil {
-			log.Printf("Error when subscribing to topic: %v\n", token.Error())
-		} else {
-			log.Printf("Subscribed to topic: %s\n", topic)
-		}
+func (b *Broker) Subscribe(filters map[string]byte, callback mqtt.MessageHandler) {
+	if token := b.client.SubscribeMultiple(filters, callback); token.Wait() && token.Error() != nil {
+		log.Printf("Error when subscribing to topics: %v\n", token.Error())
+	} else {
+		log.Println("Successfully subscribed to topics.")
 	}
 }
