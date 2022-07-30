@@ -38,11 +38,11 @@ func (n *Notifier) _sendSms(client *twilio.RestClient, senderNumber string, reci
 
 	resp, err := client.Api.CreateMessage(params)
 	if err != nil {
-		n.Logger.Errorf("Failed to send SMS to %s\n", recipientNumber)
-		n.Logger.Errorf("Error: %v\n", err)
+		n.Logger.Errorf("failed to send SMS to %s\n", recipientNumber)
+		n.Logger.Errorf("error: %v\n", err)
 	} else {
-		n.Logger.Infof("Successfully sent SMS to %s\n", recipientNumber)
+		n.Logger.Infof("successfully sent SMS to %s\n", recipientNumber)
 		response, _ := json.Marshal(*resp)
-		n.Logger.Infof("Response: %s\n", response)
+		n.Logger.Infof("response: %s\n", response)
 	}
 }

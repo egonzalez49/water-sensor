@@ -5,24 +5,25 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
-	"log"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/egonzalez49/water-sensor/config"
+	"github.com/egonzalez49/water-sensor/logging"
 )
 
 type Broker struct {
 	client mqtt.Client
 	opts   *mqtt.ClientOptions
+	Logger *logging.Logger
 }
 
-func NewBroker(cfg *config.Config) (*Broker, error) {
+func NewBroker(cfg *config.Config, logger *logging.Logger) (*Broker, error) {
 	opts, err := initOpts(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Broker{opts: opts}, nil
+	return &Broker{opts: opts, Logger: logger}, nil
 }
 
 func initOpts(cfg *config.Config) (*mqtt.ClientOptions, error) {
@@ -83,8 +84,8 @@ func (b *Broker) Connect() error {
 
 func (b *Broker) Subscribe(filters map[string]byte, callback mqtt.MessageHandler) {
 	if token := b.client.SubscribeMultiple(filters, callback); token.Wait() && token.Error() != nil {
-		log.Printf("Error when subscribing to topics: %v\n", token.Error())
+		b.Logger.Errorf("error when subscribing to topics: %v\n", token.Error())
 	} else {
-		log.Println("Successfully subscribed to topics.")
+		b.Logger.Info("successfully subscribed to topics.")
 	}
 }

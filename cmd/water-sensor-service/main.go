@@ -37,7 +37,7 @@ func main() {
 	notifier := notify.NewNotifier(cfg, logger)
 	sub := subscriber.NewSubscriber(cfg, inmem, logger, notifier)
 
-	bkr, err := broker.NewBroker(cfg)
+	bkr, err := broker.NewBroker(cfg, logger)
 	if err != nil {
 		logger.Fatalf("can't initialize broker: %v", err)
 	}

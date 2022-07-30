@@ -39,23 +39,23 @@ func NewSubscriber(cfg *config.Config, inmem *cache.Cache, logger *logging.Logge
 }
 
 func (s *Service) OnConnect(client mqtt.Client) {
-	s.Logger.Info("Connected to broker")
+	s.Logger.Info("connected to broker")
 }
 
 func (s *Service) OnConnectionLost(client mqtt.Client, err error) {
-	s.Logger.Infof("Connection to broker lost: %v\n", err)
+	s.Logger.Infof("connection to broker lost: %v\n", err)
 }
 
 func (s *Service) OnUnknownMessageHandler(client mqtt.Client, msg mqtt.Message) {
-	s.Logger.Infof("Unknown message from topic %s received: %s\n", msg.Topic(), msg.Payload())
+	s.Logger.Infof("unknown message from topic %s received: %s\n", msg.Topic(), msg.Payload())
 }
 
 func (s *Service) OnWaterSensorHandler(client mqtt.Client, msg mqtt.Message) {
-	s.Logger.Infof("Message from topic %s received: %s\n", msg.Topic(), msg.Payload())
+	s.Logger.Infof("message from topic %s received: %s\n", msg.Topic(), msg.Payload())
 
 	var data SensorPayload
 	if err := json.Unmarshal(msg.Payload(), &data); err != nil {
-		s.Logger.Errorf("Unable to unmarshal message: %v\n", err)
+		s.Logger.Errorf("unable to unmarshal message: %v\n", err)
 		return
 	}
 
@@ -69,11 +69,11 @@ func (s *Service) OnWaterSensorHandler(client mqtt.Client, msg mqtt.Message) {
 
 		_, err = s.Cache.Set(ctx, data.Id, struct{}{}, 5*time.Minute)
 		if err != nil {
-			s.Logger.Errorf("Redis error: %v\n", err)
+			s.Logger.Errorf("redis error: %v\n", err)
 			return
 		}
 	} else if err != nil {
-		s.Logger.Errorf("Redis error: %v\n", err)
+		s.Logger.Errorf("redis error: %v\n", err)
 		return
 	}
 }
