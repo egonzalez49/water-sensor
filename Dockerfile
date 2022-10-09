@@ -17,9 +17,9 @@ RUN go mod download
 COPY ./ ./
 
 # Compile the project
-RUN go build -o /water-sensor-service ./cmd/water-sensor-service
+RUN go build -o /water-sensor ./cmd/water-sensor
 
-CMD ["/water-sensor-service"]
+CMD ["/water-sensor"]
 
 # ##
 # ## Deploy
