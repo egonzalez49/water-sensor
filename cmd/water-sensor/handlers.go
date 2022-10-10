@@ -1,13 +1,13 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
-	"github.com/go-redis/redis/v8"
+	"github.com/egonzalez49/water-sensor/internal/cache"
 )
 
 func (app *application) messageProperties(msg mqtt.Message) map[string]string {
@@ -40,23 +40,23 @@ type MessagePayload struct {
 }
 
 func (app *application) onWaterSensorHandler(client mqtt.Client, msg mqtt.Message) {
-	app.logger.Info("received message from broker", app.messageProperties(msg))
+	msgProperties := app.messageProperties(msg)
+	app.logger.Info("received message from broker", msgProperties)
 
 	var data MessagePayload
 	if err := json.Unmarshal(msg.Payload(), &data); err != nil {
-		app.logger.Error(fmt.Errorf("unable to unmarshal message: %w", err), app.messageProperties(msg))
+		app.logger.Error(fmt.Errorf("unable to unmarshal message: %w", err), msgProperties)
 		return
 	}
 
-	ctx := context.Background()
-	_, err := app.cache.Get(ctx, data.Id)
-	if err == redis.Nil {
+	_, err := app.cache.Get(data.Id)
+	if errors.Is(err, cache.ErrKeyNotFound) {
 		// Key does not exist in cache.
 		// Notify respective parties and save the id
 		// in cache to prevent processing duplicates.
 		app.sms.Send(app.config.Twilio.Recipients, "Water leak detected.")
 
-		_, err = app.cache.Set(ctx, data.Id, struct{}{}, 5*time.Minute)
+		_, err = app.cache.Set(data.Id, struct{}{}, 5*time.Minute)
 		if err != nil {
 			app.logger.Error(fmt.Errorf("unexpected error with cache: %w", err), nil)
 			return

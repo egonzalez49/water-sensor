@@ -44,10 +44,17 @@ func main() {
 	app := application{
 		config: cfg,
 		logger: logger,
-		cache:  cache.New(cfg.Redis.Host, cfg.Redis.Port, cfg.Redis.Password),
+		cache:  cache.New(cfg.Redis.Host, cfg.Redis.Port),
 		broker: broker.New(cfg.Mqtt.ClientId, cfg.Mqtt.Host, cfg.Mqtt.Port),
 		sms:    sms.New(cfg.Twilio.Sid, cfg.Twilio.Key, cfg.Twilio.Secret, cfg.Twilio.Sender),
 	}
+
+	err = app.cache.Connect(cfg.Redis.Password)
+	if err != nil {
+		app.logger.Fatal(err, nil)
+	}
+
+	app.logger.Info("connected to cache", app.cache.Properties())
 
 	// Set various broker message handlers
 	app.broker.SetOnConnectHandler(app.onBrokerConnection)
