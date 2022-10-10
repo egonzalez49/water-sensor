@@ -58,11 +58,11 @@ func (app *application) onWaterSensorHandler(client mqtt.Client, msg mqtt.Messag
 
 		_, err = app.cache.Set(ctx, data.Id, struct{}{}, 5*time.Minute)
 		if err != nil {
-			app.logger.Error(fmt.Errorf("unexpected error with cache client: %w", err), nil)
+			app.logger.Error(fmt.Errorf("unexpected error with cache: %w", err), nil)
 			return
 		}
 	} else if err != nil {
-		app.logger.Error(fmt.Errorf("unexpected error with cache client: %w", err), nil)
+		app.logger.Error(fmt.Errorf("unexpected error with cache: %w", err), nil)
 		return
 	}
 }
