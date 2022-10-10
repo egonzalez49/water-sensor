@@ -4,7 +4,7 @@
 
 # Alpine is chosen for its small footprint
 # compared to Ubuntu
-FROM golang:1.17.7-alpine AS build
+FROM golang:1.19.1-alpine AS build
 
 WORKDIR /app
 
