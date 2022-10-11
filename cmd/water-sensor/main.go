@@ -49,30 +49,8 @@ func main() {
 		sms:    sms.New(cfg.Twilio.Sid, cfg.Twilio.Key, cfg.Twilio.Secret, cfg.Twilio.Sender),
 	}
 
-	err = app.cache.Connect(cfg.Redis.Password)
-	if err != nil {
-		app.logger.Fatal(err, nil)
-	}
-
-	app.logger.Info("connected to cache", app.cache.Properties())
-
-	// Set various broker message handlers
-	app.broker.SetOnConnectHandler(app.onBrokerConnection)
-	app.broker.SetOnConnectionLostHandler(app.onBrokerConnectionLost)
-	app.broker.SetDefaultMessageHandler(app.onBrokerUnknownMessage)
-
-	err = app.broker.Connect(cfg.Mqtt.Username, cfg.Mqtt.Password)
-	if err != nil {
-		app.logger.Fatal(err, nil)
-	}
-
-	// Each key represents a broker topic to subscribe to.
-	// Each value represents the quality of service level.
-	// 0 - at most once
-	// 1 - at least once
-	// 2 - exactly once
-	filters := map[string]byte{"sensor/water": 1}
-	app.broker.Subscribe(filters, app.onWaterSensorHandler)
+	app.connectToCache()
+	app.connectToBroker()
 
 	// Keep the main goroutine running by
 	// listening for a shutdown signal.
@@ -84,4 +62,37 @@ func main() {
 	app.logger.Info("shutting down service", map[string]string{
 		"signal": s.String(),
 	})
+}
+
+// Establishes a connection to the application's configured cache.
+// If one cannot be established, logs the error and exits the program.
+func (app *application) connectToCache() {
+	err := app.cache.Connect(app.config.Redis.Password)
+	if err != nil {
+		app.logger.Fatal(err, nil)
+	}
+
+	app.logger.Info("connected to cache", app.cache.Properties())
+}
+
+// Establishes a connection to the application's configured broker.
+// If one cannot be established, logs the error and exits the program.
+func (app *application) connectToBroker() {
+	// Set various broker message handlers
+	app.broker.SetOnConnectHandler(app.onBrokerConnection)
+	app.broker.SetOnConnectionLostHandler(app.onBrokerConnectionLost)
+	app.broker.SetDefaultMessageHandler(app.onBrokerUnknownMessage)
+
+	err := app.broker.Connect(app.config.Mqtt.Username, app.config.Mqtt.Password)
+	if err != nil {
+		app.logger.Fatal(err, nil)
+	}
+
+	// Each key represents a broker topic to subscribe to.
+	// Each value represents the quality of service level.
+	// 0 - at most once
+	// 1 - at least once
+	// 2 - exactly once
+	filters := map[string]byte{"sensor/water": 1}
+	app.broker.Subscribe(filters, app.onWaterSensorHandler)
 }
