@@ -63,11 +63,16 @@ func (app *application) onWaterSensorHandler(client mqtt.Client, msg mqtt.Messag
 
 	_, err := app.cache.Get(data.Id)
 	if err != nil {
+		// Key does not exist in cache.
+		// Notify respective parties and save the id
+		// in cache to prevent processing duplicates.
 		if errors.Is(err, cache.ErrKeyNotFound) {
-			// Key does not exist in cache.
-			// Notify respective parties and save the id
-			// in cache to prevent processing duplicates.
-			app.sms.Send(app.config.Twilio.Recipients, "Water leak detected.")
+			// Send an sms to each recipient in concurrent-fashion.
+			for _, num := range app.config.Twilio.Recipients {
+				go func(num string) {
+					app.sms.Send(num, "Water leak detected.")
+				}(num)
+			}
 
 			_, err = app.cache.Set(data.Id, struct{}{}, 5*time.Minute)
 			if err != nil {

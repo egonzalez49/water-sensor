@@ -11,7 +11,19 @@ import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
-type Broker struct {
+type Broker interface {
+	Connect(username, password string) error
+	Disconnect(waitTime uint)
+
+	SetOnConnectHandler(onConn mqtt.OnConnectHandler)
+	SetOnConnectionLostHandler(onLost mqtt.ConnectionLostHandler)
+	SetDefaultMessageHandler(defaultHandler mqtt.MessageHandler)
+
+	Subscribe(filters map[string]byte, callback mqtt.MessageHandler) error
+	Properties() map[string]string
+}
+
+type broker struct {
 	client  mqtt.Client
 	options *mqtt.ClientOptions
 }
@@ -23,14 +35,14 @@ func New(clientId, host string, port int) Broker {
 	options.AddBroker(address)
 	options.SetClientID(clientId)
 
-	return Broker{
+	return &broker{
 		options: options,
 	}
 }
 
 // Connect establishes a connection to the client broker.
 // Returns an error if a connection cannot be established.
-func (b *Broker) Connect(username, password string) error {
+func (b *broker) Connect(username, password string) error {
 	tlsConfig, err := newTlsConfig()
 	if err != nil {
 		return err
@@ -51,12 +63,12 @@ func (b *Broker) Connect(username, password string) error {
 
 // Disconnect waits the specified number of milliseconds before
 // closing the connection to the broker to allow existing work to finish.
-func (b *Broker) Disconnect(waitTime uint) {
+func (b *broker) Disconnect(waitTime uint) {
 	b.client.Disconnect(waitTime)
 }
 
 // Returns a map of various broker connection properties.
-func (b *Broker) Properties() map[string]string {
+func (b *broker) Properties() map[string]string {
 	options := b.client.OptionsReader()
 
 	url := options.Servers()[0]
@@ -88,25 +100,25 @@ func newTlsConfig() (*tls.Config, error) {
 }
 
 // Set a handler for whenever the connection with the broker is established.
-func (b *Broker) SetOnConnectHandler(onConn mqtt.OnConnectHandler) {
+func (b *broker) SetOnConnectHandler(onConn mqtt.OnConnectHandler) {
 	b.options.OnConnect = onConn
 }
 
 // Set a handler for whenever the connection with the broker is lost.
-func (b *Broker) SetOnConnectionLostHandler(onLost mqtt.ConnectionLostHandler) {
+func (b *broker) SetOnConnectionLostHandler(onLost mqtt.ConnectionLostHandler) {
 	b.options.OnConnectionLost = onLost
 }
 
 // Set a handler for whenever a message is received on an unsubscribed topic
 // or when a subscribed topic has no specified handler.
-func (b *Broker) SetDefaultMessageHandler(defaultHandler mqtt.MessageHandler) {
+func (b *broker) SetDefaultMessageHandler(defaultHandler mqtt.MessageHandler) {
 	b.options.SetDefaultPublishHandler(defaultHandler)
 }
 
 // Subscribes to the specified topics, assigning each the specified quality of service level.
 // The specified callback will be called whenever a message from the topics is received.
 // If no callback is specified, the default message handler will be called instead.
-func (b *Broker) Subscribe(filters map[string]byte, callback mqtt.MessageHandler) error {
+func (b *broker) Subscribe(filters map[string]byte, callback mqtt.MessageHandler) error {
 	token := b.client.SubscribeMultiple(filters, callback)
 	if token.Wait() && token.Error() != nil {
 		return token.Error()

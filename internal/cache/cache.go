@@ -14,7 +14,16 @@ var ctx = context.Background()
 
 var ErrKeyNotFound = errors.New("cache: no matching key found")
 
-type Cache struct {
+type Cache interface {
+	Connect(password string) error
+
+	Get(key string) (string, error)
+	Set(key string, value any, expiration time.Duration) (string, error)
+
+	Properties() map[string]string
+}
+
+type cache struct {
 	client  *redis.Client
 	options redis.Options
 }
@@ -27,25 +36,25 @@ func New(host string, port int) Cache {
 		DB:   0,
 	}
 
-	return Cache{
+	return &cache{
 		options: options,
 	}
 }
 
 // Connect establishes a connection to the cache client.
 // Returns an error if a connection cannot be established.
-func (cache *Cache) Connect(password string) error {
-	cache.options.Password = password
-	cache.client = redis.NewClient(&cache.options)
+func (c *cache) Connect(password string) error {
+	c.options.Password = password
+	c.client = redis.NewClient(&c.options)
 
-	_, err := cache.client.Ping(ctx).Result()
+	_, err := c.client.Ping(ctx).Result()
 
 	return err
 }
 
 // Returns a map of various cache connection properties.
-func (cache *Cache) Properties() map[string]string {
-	host, port, _ := net.SplitHostPort(cache.options.Addr)
+func (c *cache) Properties() map[string]string {
+	host, port, _ := net.SplitHostPort(c.options.Addr)
 
 	return map[string]string{
 		"host": host,
@@ -55,8 +64,8 @@ func (cache *Cache) Properties() map[string]string {
 
 // Retrieves the value corresponding with the key.
 // Returns ErrKeyNotFound if the key is not in cache.
-func (cache *Cache) Get(key string) (string, error) {
-	value, err := cache.client.Get(ctx, key).Result()
+func (c *cache) Get(key string) (string, error) {
+	value, err := c.client.Get(ctx, key).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
 			return "", ErrKeyNotFound
@@ -70,6 +79,6 @@ func (cache *Cache) Get(key string) (string, error) {
 
 // Sets the key value pair in cache with an expiration TTL.
 // An expiration value of 0 indicates no expiration.
-func (cache *Cache) Set(key string, value any, expiration time.Duration) (string, error) {
-	return cache.client.Set(ctx, key, value, expiration).Result()
+func (c *cache) Set(key string, value any, expiration time.Duration) (string, error) {
+	return c.client.Set(ctx, key, value, expiration).Result()
 }
