@@ -1,4 +1,4 @@
-# water-sensor
+# water-sensor [![Tests](https://github.com/egonzalez49/water-sensor/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/egonzalez49/water-sensor/actions/workflows/test.yml)
 Containerized service to receive water sensor events and send text message alerts.  
   
 Runs an MQTT broker listening for emitted events from an RTL-SDR device using the open-source [rtl_433](https://github.com/merbanan/rtl_433) library,  
