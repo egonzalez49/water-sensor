@@ -61,7 +61,11 @@ func (app *application) onWaterSensorHandler(client mqtt.Client, msg mqtt.Messag
 		return
 	}
 
-	_, err := app.cache.Get(data.Id)
+	app.sendAlerts(data)
+}
+
+func (app *application) sendAlerts(msg messagePayload) {
+	_, err := app.cache.Get(msg.Id)
 	if err != nil {
 		// Key does not exist in cache.
 		// Notify respective parties and save the id
@@ -74,7 +78,7 @@ func (app *application) onWaterSensorHandler(client mqtt.Client, msg mqtt.Messag
 				}(num)
 			}
 
-			_, err = app.cache.Set(data.Id, struct{}{}, 5*time.Minute)
+			_, err = app.cache.Set(msg.Id, struct{}{}, 5*time.Minute)
 			if err != nil {
 				app.logger.Error(fmt.Errorf("unexpected error with cache: %w", err), nil)
 				return
